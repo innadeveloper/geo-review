@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="./main.css">
+    <title>ГЕО-ОТЗЫВ</title>
+</head>
+<body>
+    <div id="map"></div>
+
+    <script type="html/template" id="balloon--blank">
+        <div class="balloon">
+            <h1>Отзыв:</h1>
+            <input class="balloon__name" type="text" placeholder="Укажите ваше имя">
+            <input class="balloon__place" type="text" placeholder="Укажите место">
+            <textarea class="balloon__otzyv" placeholder="Оставьте отзыв"></textarea>
+            <button class="balloon__add">Добавить</button>
+        </div>
+    </script>
+ 
+     <script src="https://api-maps.yandex.ru/2.1/?apikey=38b0eb61-0e87-4e1d-b667-7ee70526f6f0&lang=ru_RU" type="text/javascript"></script>    
+     <script src="./main.js"></script>    
+</body>
+</html>
+

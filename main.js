@@ -3,24 +3,73 @@ var myObjects = [];
 class LocalStorage {
     constructor() {}
 
-    addFeedback(newFeedback) {
-        localStorage.setItem(`geootzyv${localStorage.length + 1}`, `${JSON.stringify(newFeedback)}`);
+    initStorage() {
+        if (localStorage.getItem("geootzyv") === null ||
+            JSON.parse(localStorage.getItem("geootzyv")).feeds.length === 0) {
+
+            localStorage.setItem("geootzyv", JSON.stringify({
+                count: 1,
+                feeds: []
+            }));
+
+            let geoArray = [];
+            myFeedbacks.forEach(feed => {
+                feed.id = JSON.parse(localStorage.getItem("geootzyv")).count;
+                geoArray.push(feed);
+                localStorage.setItem("geootzyv", JSON.stringify({
+                    count: JSON.parse(localStorage.getItem("geootzyv")).count + 1,
+                    feeds: []
+                }));
+            });
+
+            localStorage.setItem("geootzyv", JSON.stringify({
+                count: JSON.parse(localStorage.getItem("geootzyv")).count,
+                feeds: geoArray
+            }));
+        }
     }
+
+
+    addFeedback(newFeedback) {
+        let geoArray = JSON.parse(localStorage.getItem("geootzyv")).feeds;
+        newFeedback.id = JSON.parse(localStorage.getItem("geootzyv")).count;
+        geoArray.push(newFeedback);
+
+        localStorage.setItem("geootzyv", JSON.stringify({
+            count: JSON.parse(localStorage.getItem("geootzyv")).count + 1,
+            feeds: geoArray
+        }));
+        //alert(localStorage.getItem("geootzyv"));
+    }
+
+
+    removeFeedback(id) {
+        let geoArray = JSON.parse(localStorage.getItem("geootzyv")).feeds;
+        geoArray.forEach((feed, i, arr) => {
+            if (feed.id === id) {
+                arr.splice(i, 1);
+            }
+        });
+
+        localStorage.setItem("geootzyv", JSON.stringify({
+            count: JSON.parse(localStorage.getItem("geootzyv")).count,
+            feeds: geoArray
+        }));
+    }
+
 
     clearStorage() {
-        localStorage.clear();
+        localStorage.removeItem("geootzyv");
     }
 
+
     inArray() {
-        let reviews = [];
-        for (let i = 1; i <= localStorage.length; i++) {
-            let obj = JSON.parse(localStorage.getItem(`geootzyv${i}`));
-            reviews.push(obj);
-        }
-        return reviews;
+        let geoArray = JSON.parse(localStorage.getItem("geootzyv")).feeds;
+        return geoArray;
     }
 }
 
+///
 class YaMap {
     constructor(onClick, getContent, balloonBlank) {
         this.onClick = onClick;
@@ -44,7 +93,7 @@ class YaMap {
         this.map.balloon.close();
     }
 
-    createPlacemark(coords) {
+    createPlacemark(coords, id = JSON.parse(localStorage.getItem("geootzyv")).count - 1) {
         if (coords) this.newCoords = coords;
 
         let newMarker = new ymaps.Placemark(this.newCoords, {
@@ -56,9 +105,14 @@ class YaMap {
             iconImageOffset: [-32, -64]
         });
 
+        newMarker.GeoOtzyvID = id;
         myObjects.push(newMarker);
         this.map.geoObjects.add(newMarker);
         this.map.clusterer.add(myObjects);
+    }
+
+    deletePlacemark(placemark) {
+        this.map.geoObjects.remove(placemark);
     }
 
     initMap() {
@@ -101,14 +155,12 @@ class YaMap {
                     coordsCluster.push(mark.geometry.getCoordinates()));
                 this.map.clusterer.options.set("clusterBalloonContentLayout",
                     ymaps.templateLayoutFactory.createClass(this.getContent(coordsCluster)))
-
-            } else {
-                // this.onClick(this.newCoords);
             }
         });
     }
 }
 
+///
 class GeoOtzyv {
     constructor() {
         this.balloonBlank = document.querySelector("#balloon--blank").innerHTML;
@@ -125,9 +177,9 @@ class GeoOtzyv {
     }
 
     onInit() {
-        this.localS.inArray().forEach(obj =>
-            this.myMap.createPlacemark(obj.place)
-        );
+        this.localS.inArray().forEach(obj => {
+            this.myMap.createPlacemark(obj.place, obj.id)
+        });
 
         document.body.addEventListener('click', this.onDocumentClick.bind(this));
     }
@@ -151,7 +203,6 @@ class GeoOtzyv {
 
         if (name && title && data && feed) {
             let newFeedback = {
-                id: localStorage.length + 1,
                 place: this.myMap.newCoords,
                 name: name,
                 title: title,
@@ -171,21 +222,17 @@ class GeoOtzyv {
         let list = '';
 
         this.localS.inArray().forEach(obj => {
-            let id;
-
             for (let key in obj) {
-                if (key === "id") id = obj['id'];
-
                 if (key === "place" &&
                     (JSON.stringify(obj[key]) === JSON.stringify(coords) ||
                         JSON.stringify(coords).includes(JSON.stringify(obj[key])))) {
 
                     let review =
-                        '<li class="rev" ' + 'id=' + `${id}` + '>' +
+                        '<li class="rev" ' + 'id=' + `${obj.id}` + '>' +
                         '<span class="name">' + obj.name + '</span>' +
                         '<span class="title">' + obj.title + '</span>' +
                         '<span class="data">' + obj.data + '</span>' +
-                        '<p class="feed" title="Удалить">' + obj.feed + '</p>' +
+                        '<p class="feed">' + obj.feed +
                         '</li>';
 
                     if (Array.isArray(Array.isArray(coords))) {
@@ -231,7 +278,7 @@ class GeoOtzyv {
         if (e.target.tagName === "BUTTON" && e.target.classList.contains("balloon__add") &&
             this.formValidate(e.target.closest(".balloon"))) {
             this.myMap.closeBalloon();
-            this.myMap.createPlacemark();
+            this.myMap.createPlacemark(undefined, undefined);
 
         } else if (e.target.tagName === "BUTTON" && e.target.classList.contains("balloon__add")) {
             let inputs = e.target.closest(".balloon").querySelectorAll('input, textarea');
@@ -246,7 +293,9 @@ class GeoOtzyv {
             }
 
         } 
+
     }
+
 }
 
 
